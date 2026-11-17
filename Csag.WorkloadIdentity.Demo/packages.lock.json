@@ -329,17 +329,17 @@
       "csag.workloadidentity": {
         "type": "Project",
         "dependencies": {
-          "Azure.Core": "[1.63.0, )",
+          "Azure.Core": "[1.64.0, )",
           "Azure.Identity": "[1.21.0, )",
           "Google.Cloud.Iam.Credentials.V1": "[2.5.0, )",
-          "Grpc.Core.Api": "[2.84.0, )"
+          "Grpc.Core.Api": "[2.85.0, )"
         }
       },
       "Azure.Core": {
         "type": "CentralTransitive",
-        "requested": "[1.63.0, )",
-        "resolved": "1.63.0",
-        "contentHash": "5egODg5yWcRV0kkAv22jQL7YmsfupX7intDYbxZMu8giASSQVfG5+mwC+BdJOWvhFT1Y+9KzuvbUGqAVEBzsfw==",
+        "requested": "[1.64.0, )",
+        "resolved": "1.64.0",
+        "contentHash": "SMmFWcTyRMdwdoLk+3yN9PrnxznDis1T8PpOeDFuB3/56ipMDYkPl7P8z5qNRzWWd9LL0lFJ5qhkhmomYamWUQ==",
         "dependencies": {
           "Microsoft.Bcl.AsyncInterfaces": "10.0.10",
           "Microsoft.Identity.Client": "4.90.0",
@@ -368,9 +368,9 @@
       },
       "Grpc.Core.Api": {
         "type": "CentralTransitive",
-        "requested": "[2.84.0, )",
-        "resolved": "2.84.0",
-        "contentHash": "p2SOMl6q/GZ4/5MLkgboC/z55g4zKUEruRn/g46QgppjQBVnsLZVBU/9VO7n60ll38G3Eo8Zu9b7x+W01GKFVg=="
+        "requested": "[2.85.0, )",
+        "resolved": "2.85.0",
+        "contentHash": "cpYu/nw/QhwHcRZMJbYD8lEllKrdwYMiDS4U3oH61nhYPUMNkcCcef4ulv11svHvTBThYV+ju332N9bCrfe7cQ=="
       }
     }
   }
