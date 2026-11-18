@@ -1,6 +1,6 @@
 # Csag.WorkloadIdentity
 
-[![Build Status](https://github.com/neolution-ch/Csag.WorkloadIdentity/actions/workflows/ci.yml/badge.svg)](https://github.com/neolution-ch/Csag.WorkloadIdentity/actions)
+[![Build Status](https://github.com/collana-solutions/Csag.WorkloadIdentity/actions/workflows/ci.yml/badge.svg)](https://github.com/collana-solutions/Csag.WorkloadIdentity/actions)
 [![NuGet](https://img.shields.io/nuget/v/Csag.WorkloadIdentity.svg)](https://www.nuget.org/packages/Csag.WorkloadIdentity)
 [![License: MIT](https://img.shields.io/badge/License-MIT-lightgray.svg)](./LICENSE)
 
@@ -58,7 +58,7 @@ To test a preview:
 
 ## Release process
 
-This repository follows the [neolution-ch release playbook](https://github.com/neolution-ch/release-playbook) (Changesets, NuGet variant):
+This repository follows the [collana-solutions release playbook](https://github.com/collana-solutions/release-playbook) (Changesets, NuGet variant):
 
 1. Every PR that changes the library needs a changeset: run `npx changeset`, choose the bump type and describe the change. CI blocks PRs without one (`npx changeset --empty` for changes that do not affect the package).
 2. On merge to `main`, the Release workflow maintains a **"chore: version packages"** PR that accumulates pending changesets; `scripts/sync-versions.mjs` keeps the `.csproj` version in step.
