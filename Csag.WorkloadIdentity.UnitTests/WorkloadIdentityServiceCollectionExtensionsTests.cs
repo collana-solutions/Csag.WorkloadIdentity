@@ -45,7 +45,7 @@
 
         /// <summary>
         /// Verifies that the parameterless overload binds the default section of the registered configuration and
-        /// wires up both token providers, both exchangers and the refresh service.
+        /// wires up every token provider, both exchangers and the refresh service.
         /// </summary>
         [Fact]
         public void Given_ConfigurationInContainer_When_AddWorkloadIdentity_Then_BindsOptionsAndResolvesPipeline()
@@ -68,10 +68,14 @@
             var blobStorage = options.BlobStorage.ShouldNotBeNull();
             blobStorage.Provider.ShouldBe(WorkloadIdentityProvider.ManagedIdentity);
             blobStorage.ManagedIdentity.ShouldNotBeNull().ClientId.ShouldBe(UserAssignedClientId);
+            var azureSignalR = options.AzureSignalR.ShouldNotBeNull();
+            azureSignalR.Provider.ShouldBe(WorkloadIdentityProvider.Google);
+            azureSignalR.Google.ShouldNotBeNull().ServiceAccountEmail.ShouldBe(ServiceAccountEmail);
             options.RefreshAheadWindow.ShouldBe(RefreshAheadWindow);
             options.EnableBackgroundRefresh.ShouldBeFalse();
             serviceProvider.GetRequiredService<IAzureSqlTokenProvider>().ShouldBeOfType<AzureSqlTokenProvider>();
             serviceProvider.GetRequiredService<IBlobStorageTokenProvider>().ShouldBeOfType<BlobStorageTokenProvider>();
+            serviceProvider.GetRequiredService<IAzureSignalRTokenProvider>().ShouldBeOfType<AzureSignalRTokenProvider>();
             serviceProvider.GetServices<IWorkloadIdentityTokenExchanger>().Select(exchanger => exchanger.GetType())
                 .ShouldBe([typeof(GoogleFederatedTokenExchanger), typeof(ManagedIdentityTokenExchanger)], ignoreOrder: true);
             serviceProvider.GetServices<IHostedService>().ShouldHaveSingleItem().ShouldBeOfType<TokenRefreshService>();
@@ -298,6 +302,7 @@
             // Assert
             services.Count(descriptor => descriptor.ServiceType == typeof(IAzureSqlTokenProvider)).ShouldBe(1);
             services.Count(descriptor => descriptor.ServiceType == typeof(IBlobStorageTokenProvider)).ShouldBe(1);
+            services.Count(descriptor => descriptor.ServiceType == typeof(IAzureSignalRTokenProvider)).ShouldBe(1);
             services.Count(descriptor => descriptor.ServiceType == typeof(IEntraClientAssertionProvider)).ShouldBe(1);
             services.Count(descriptor => descriptor.ServiceType == typeof(IWorkloadIdentityTokenExchanger)).ShouldBe(2);
             services.Count(descriptor => descriptor.ServiceType == typeof(IHostedService)).ShouldBe(1);
@@ -361,10 +366,12 @@
             using var serviceProvider = services.BuildServiceProvider();
 
             // Act
-            var exception = Should.Throw<InvalidOperationException>(() => serviceProvider.GetRequiredService<IBlobStorageTokenProvider>());
+            var blobStorageException = Should.Throw<InvalidOperationException>(() => serviceProvider.GetRequiredService<IBlobStorageTokenProvider>());
+            var azureSignalRException = Should.Throw<InvalidOperationException>(() => serviceProvider.GetRequiredService<IAzureSignalRTokenProvider>());
 
             // Assert
-            exception.Message.ShouldContain("Csag.WorkloadIdentity:BlobStorage");
+            blobStorageException.Message.ShouldContain("Csag.WorkloadIdentity:BlobStorage");
+            azureSignalRException.Message.ShouldContain("Csag.WorkloadIdentity:AzureSignalR");
             serviceProvider.GetRequiredService<IAzureSqlTokenProvider>().ShouldBeOfType<AzureSqlTokenProvider>();
         }
 
@@ -442,8 +449,35 @@
         }
 
         /// <summary>
-        /// Creates an in-memory configuration holding a complete default section: Azure SQL over Google federation
-        /// and Blob Storage over a user-assigned managed identity.
+        /// Verifies that the Azure SignalR Service resource, federating through Google with the same identity as Azure
+        /// SQL, is served through the client assertion credential seam with the SignalR scope.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        [Fact]
+        public async Task Given_GoogleResourceAndSubstitutedCredentialFactory_When_GetAzureSignalRAccessTokenAsync_Then_RequestsSignalRScope()
+        {
+            // Arrange
+            var credential = Substitute.For<TokenCredential>();
+            credential.GetTokenAsync(Arg.Any<TokenRequestContext>(), Arg.Any<CancellationToken>())
+                .Returns(new AccessToken("signalr-token", DateTimeOffset.UtcNow.AddHours(1)));
+            var credentialFactory = Substitute.For<IClientAssertionCredentialFactory>();
+            credentialFactory.Create(TenantId, ClientId, Arg.Any<Func<CancellationToken, Task<string>>>()).Returns(credential);
+            var services = CreateServices(CreateValidConfiguration());
+            services.AddSingleton(credentialFactory);
+            services.AddWorkloadIdentity();
+            using var serviceProvider = services.BuildServiceProvider();
+
+            // Act
+            var token = await serviceProvider.GetRequiredService<IAzureSignalRTokenProvider>().GetAzureSignalRAccessTokenAsync(CancellationToken.None);
+
+            // Assert
+            token.ShouldBe("signalr-token");
+            await credential.Received(1).GetTokenAsync(Arg.Is<TokenRequestContext>(context => context.Scopes.Single() == "https://signalr.azure.com/.default"), Arg.Any<CancellationToken>());
+        }
+
+        /// <summary>
+        /// Creates an in-memory configuration holding a complete default section: Azure SQL and Azure SignalR Service
+        /// over the same Google federation, and Blob Storage over a user-assigned managed identity.
         /// </summary>
         /// <returns>The configuration.</returns>
         private static IConfiguration CreateValidConfiguration()
@@ -458,6 +492,10 @@
                     [$"{section}:AzureSql:Google:ServiceAccountEmail"] = ServiceAccountEmail,
                     [$"{section}:BlobStorage:Provider"] = nameof(WorkloadIdentityProvider.ManagedIdentity),
                     [$"{section}:BlobStorage:ManagedIdentity:ClientId"] = UserAssignedClientId,
+                    [$"{section}:AzureSignalR:Provider"] = nameof(WorkloadIdentityProvider.Google),
+                    [$"{section}:AzureSignalR:Google:TenantId"] = TenantId,
+                    [$"{section}:AzureSignalR:Google:ClientId"] = ClientId,
+                    [$"{section}:AzureSignalR:Google:ServiceAccountEmail"] = ServiceAccountEmail,
                     [$"{section}:RefreshAheadWindow"] = RefreshAheadWindow.ToString(),
                     [$"{section}:EnableBackgroundRefresh"] = "false",
                 })

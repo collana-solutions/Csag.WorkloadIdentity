@@ -17,6 +17,7 @@
         [Theory]
         [InlineData(nameof(TokenScope.AzureSql), "https://database.windows.net/.default")]
         [InlineData(nameof(TokenScope.BlobStorage), "https://storage.azure.com/.default")]
+        [InlineData(nameof(TokenScope.AzureSignalR), "https://signalr.azure.com/.default")]
         public void Given_Scope_When_GetIdentifier_Then_ReturnsScopeFromMetadata(string scopeName, string expected)
         {
             // Arrange

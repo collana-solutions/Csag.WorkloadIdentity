@@ -32,6 +32,12 @@
         public WorkloadIdentityResourceOptions? BlobStorage { get; set; }
 
         /// <summary>
+        /// Gets or sets how access tokens for Azure SignalR Service are obtained, or <see langword="null"/> when the
+        /// application does not authenticate to Azure SignalR Service with Microsoft Entra ID.
+        /// </summary>
+        public WorkloadIdentityResourceOptions? AzureSignalR { get; set; }
+
+        /// <summary>
         /// Gets or sets how long before an access token expires it is treated as due for refresh. A call that finds
         /// the current token inside this window obtains a fresh one, and the background refresh service refreshes
         /// each token this long before it expires. Applies to every resource. Must be positive and at most five

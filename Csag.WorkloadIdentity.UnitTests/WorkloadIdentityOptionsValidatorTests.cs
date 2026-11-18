@@ -274,16 +274,17 @@
         }
 
         /// <summary>
-        /// Verifies that both resources configured with different providers pass validation.
+        /// Verifies that every resource configured, with different providers, passes validation.
         /// </summary>
         [Fact]
-        public void Given_BothResourcesConfigured_When_Validate_Then_Succeeds()
+        public void Given_EveryResourceConfigured_When_Validate_Then_Succeeds()
         {
             // Arrange
             var options = new WorkloadIdentityOptions
             {
                 AzureSql = CreateGoogleResource(),
                 BlobStorage = CreateSystemAssignedResource(),
+                AzureSignalR = CreateGoogleResource(),
             };
 
             // Act
@@ -291,6 +292,24 @@
 
             // Assert
             result.Succeeded.ShouldBeTrue();
+        }
+
+        /// <summary>
+        /// Verifies that the Azure SignalR section is validated like the other resources, naming its own path.
+        /// </summary>
+        [Fact]
+        public void Given_AzureSignalRWithIncompleteGoogleSection_When_Validate_Then_FailsNamingPath()
+        {
+            // Arrange
+            var options = new WorkloadIdentityOptions { AzureSignalR = CreateGoogleResource() };
+            options.AzureSignalR.Google.ShouldNotBeNull().ClientId = null;
+
+            // Act
+            var result = this.validator.Validate(null, options);
+
+            // Assert
+            result.Failed.ShouldBeTrue();
+            result.FailureMessage.ShouldNotBeNull().ShouldContain("AzureSignalR:Google:ClientId must be provided.");
         }
 
         /// <summary>

@@ -21,6 +21,7 @@
             {
                 TokenScope.AzureSql => options.AzureSql,
                 TokenScope.BlobStorage => options.BlobStorage,
+                TokenScope.AzureSignalR => options.AzureSignalR,
                 _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, "Unknown token scope."),
             };
         }

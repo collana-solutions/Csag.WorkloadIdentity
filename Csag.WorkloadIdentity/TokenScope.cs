@@ -18,5 +18,11 @@
         /// </summary>
         [TokenScopeMetadata("https://storage.azure.com/.default")]
         BlobStorage = 1,
+
+        /// <summary>
+        /// Azure SignalR Service.
+        /// </summary>
+        [TokenScopeMetadata("https://signalr.azure.com/.default")]
+        AzureSignalR = 2,
     }
 }

@@ -4,7 +4,7 @@
 [![NuGet](https://img.shields.io/nuget/v/Csag.WorkloadIdentity.svg)](https://www.nuget.org/packages/Csag.WorkloadIdentity)
 [![License: MIT](https://img.shields.io/badge/License-MIT-lightgray.svg)](./LICENSE)
 
-A .NET library that gives an application passwordless access tokens for Azure SQL and Azure Blob Storage from the identity it already runs as. Each resource is configured on its own and obtains its token either from the **managed identity** of the Azure resource the application runs on, or from the application's **Google identity**, exchanged for a Microsoft Entra ID access token through workload identity federation. You attach the token to the `SqlConnection`, or hand it to Azure SDK clients such as `BlobServiceClient` through the library's `TokenCredential` adapter. No password, key or secret is stored anywhere.
+A .NET library that gives an application passwordless access tokens for Azure SQL, Azure Blob Storage and Azure SignalR Service from the identity it already runs as. Each resource is configured on its own and obtains its token either from the **managed identity** of the Azure resource the application runs on, or from the application's **Google identity**, exchanged for a Microsoft Entra ID access token through workload identity federation. You attach the token to the `SqlConnection`, or hand it to Azure SDK clients such as `BlobServiceClient` or the SignalR Management SDK through the library's `TokenCredential` adapter. No password, key or secret is stored anywhere.
 
 ## Projects
 
@@ -16,7 +16,7 @@ A .NET library that gives an application passwordless access tokens for Azure SQ
 
 ## Quick start
 
-1. Set up the cloud side once. Choose the identity configuration that matches where the application runs, an Azure managed identity or Google Cloud to Azure federation, then grant that identity access to Azure SQL and Blob Storage. Every step is in [docs/cloud-identity-setup.md](./docs/cloud-identity-setup.md).
+1. Set up the cloud side once. Choose the identity configuration that matches where the application runs, an Azure managed identity or Google Cloud to Azure federation, then grant that identity access to Azure SQL, Blob Storage and SignalR Service. Every step is in [docs/cloud-identity-setup.md](./docs/cloud-identity-setup.md).
 2. Install the package and wire it into your application. The [package README](./Csag.WorkloadIdentity/README.md) has two complete quickstarts, Azure SQL from Google Cloud Run and Azure SQL plus Blob Storage from Azure App Service, the reference of every configuration key, and a migration section for users of `Neolution.AzureSqlFederatedIdentity`.
 
    ```shell
