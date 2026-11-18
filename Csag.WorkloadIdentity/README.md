@@ -1,7 +1,7 @@
 # Csag.WorkloadIdentity
 
 [![NuGet](https://img.shields.io/nuget/v/Csag.WorkloadIdentity.svg)](https://www.nuget.org/packages/Csag.WorkloadIdentity)
-[![License: MIT](https://img.shields.io/badge/License-MIT-lightgray.svg)](https://github.com/neolution-ch/Csag.WorkloadIdentity/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-lightgray.svg)](https://github.com/collana-solutions/Csag.WorkloadIdentity/blob/main/LICENSE)
 
 Passwordless access to Microsoft Entra ID for a .NET application, with the identity the application already runs as: the **managed identity** of the Azure resource it runs on (`ManagedIdentity`), or its **Google identity** through workload identity federation (`Google`). The library has two uses:
 
@@ -19,8 +19,8 @@ Either way the result is a Microsoft Entra ID access token for the resource's sc
 
 For the sign-in, the `Entra` entry names a Google service account or a managed identity, and `IEntraClientAssertionProvider` returns a token of that identity. The application sends this token to Microsoft Entra ID as the client assertion when it exchanges the sign-in code. See [Client assertion for a Microsoft Entra sign-in](#client-assertion-for-a-microsoft-entra-sign-in).
 
-- Repository: <https://github.com/neolution-ch/Csag.WorkloadIdentity>
-- Cloud and identity setup guide (managed identities, Google Cloud to Microsoft Entra ID federation, Azure SQL users, Blob Storage roles, deployment): <https://github.com/neolution-ch/Csag.WorkloadIdentity/blob/main/docs/cloud-identity-setup.md>
+- Repository: <https://github.com/collana-solutions/Csag.WorkloadIdentity>
+- Cloud and identity setup guide (managed identities, Google Cloud to Microsoft Entra ID federation, Azure SQL users, Blob Storage roles, deployment): <https://github.com/collana-solutions/Csag.WorkloadIdentity/blob/main/docs/cloud-identity-setup.md>
 
 ## Features
 
@@ -326,7 +326,7 @@ On the sign-in app registration, add a federated credential with the audience `a
 | `Google` | `https://accounts.google.com` | The unique ID of the service account |
 | `ManagedIdentity` | `https://login.microsoftonline.com/<tenant-id>/v2.0` | The object (principal) ID of the managed identity |
 
-With `Google`, the Google side is the same as for the `Google` provider of a resource. The IAM Service Account Credentials API is enabled, and the identity the application runs as has `roles/iam.serviceAccountOpenIdTokenCreator` on the service account. With `ManagedIdentity`, the identity is attached to the Azure resource the application runs on, and it is in the same tenant as the sign-in app registration. The [setup guide](https://github.com/neolution-ch/Csag.WorkloadIdentity/blob/main/docs/cloud-identity-setup.md#f-microsoft-entra-sign-in-without-a-client-secret) gives the steps.
+With `Google`, the Google side is the same as for the `Google` provider of a resource. The IAM Service Account Credentials API is enabled, and the identity the application runs as has `roles/iam.serviceAccountOpenIdTokenCreator` on the service account. With `ManagedIdentity`, the identity is attached to the Azure resource the application runs on, and it is in the same tenant as the sign-in app registration. The [setup guide](https://github.com/collana-solutions/Csag.WorkloadIdentity/blob/main/docs/cloud-identity-setup.md#f-microsoft-entra-sign-in-without-a-client-secret) gives the steps.
 
 ### Use the client assertion
 
@@ -492,8 +492,8 @@ Every section is optional: without any section the host starts, and the services
 
 ## License
 
-MIT. See <https://github.com/neolution-ch/Csag.WorkloadIdentity/blob/main/LICENSE>.
+MIT. See <https://github.com/collana-solutions/Csag.WorkloadIdentity/blob/main/LICENSE>.
 
 ## Contributing and security
 
-Issues and pull requests are welcome at <https://github.com/neolution-ch/Csag.WorkloadIdentity>; the repository's `CONTRIBUTING.md` explains the build, the tests and the release process. Please report vulnerabilities privately through GitHub's private vulnerability reporting: <https://github.com/neolution-ch/Csag.WorkloadIdentity/security/advisories/new>.
+Issues and pull requests are welcome at <https://github.com/collana-solutions/Csag.WorkloadIdentity>; the repository's `CONTRIBUTING.md` explains the build, the tests and the release process. Please report vulnerabilities privately through GitHub's private vulnerability reporting: <https://github.com/collana-solutions/Csag.WorkloadIdentity/security/advisories/new>.

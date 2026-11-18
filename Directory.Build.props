@@ -18,8 +18,8 @@
     <Company>collana solutions AG</Company>
     <Copyright>Copyright © collana solutions AG</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/neolution-ch/Csag.WorkloadIdentity</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/neolution-ch/Csag.WorkloadIdentity</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/collana-solutions/Csag.WorkloadIdentity</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/collana-solutions/Csag.WorkloadIdentity</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>

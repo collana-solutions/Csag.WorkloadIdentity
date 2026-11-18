@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for helping improve Csag.WorkloadIdentity. Bug reports, questions and pull requests are welcome on [GitHub](https://github.com/neolution-ch/Csag.WorkloadIdentity). For vulnerabilities, please follow [SECURITY.md](./SECURITY.md) instead of opening an issue.
+Thank you for helping improve Csag.WorkloadIdentity. Bug reports, questions and pull requests are welcome on [GitHub](https://github.com/collana-solutions/Csag.WorkloadIdentity). For vulnerabilities, please follow [SECURITY.md](./SECURITY.md) instead of opening an issue.
 
 ## Prerequisites
 
@@ -43,7 +43,7 @@ Dependabot proposes routine updates and generates their changesets automatically
 
 ## Changesets
 
-Releases follow the [neolution-ch release playbook](https://github.com/neolution-ch/release-playbook) with [Changesets](https://github.com/changesets/changesets); the [root README](./README.md#release-process) describes the pipeline. What it means for a pull request:
+Releases follow the [collana-solutions release playbook](https://github.com/collana-solutions/release-playbook) with [Changesets](https://github.com/changesets/changesets); the [root README](./README.md#release-process) describes the pipeline. What it means for a pull request:
 
 - Every PR that changes the library needs a changeset file in `.changeset/`. Run `npx changeset`, pick the bump type and describe the change **for consumers of the package**; the text becomes the CHANGELOG entry.
 - The package is on a `0.x` version, so the bump convention is: **minor** for a breaking or behaviour-changing change, **patch** for a fix or for documentation that ships inside the package (the package README does).
