@@ -63,6 +63,11 @@
         private readonly IBlobStorageTokenProvider blobStorageTokenProvider = Substitute.For<IBlobStorageTokenProvider, ITokenRefresher>();
 
         /// <summary>
+        /// The substituted Azure SignalR Service token provider, which also supports forced refresh.
+        /// </summary>
+        private readonly IAzureSignalRTokenProvider azureSignalRTokenProvider = Substitute.For<IAzureSignalRTokenProvider, ITokenRefresher>();
+
+        /// <summary>
         /// Counts the refreshes the service requested from the Azure SQL provider.
         /// </summary>
         private readonly RefreshCounter azureSqlRefreshes = new();
@@ -71,6 +76,11 @@
         /// Counts the refreshes the service requested from the Blob Storage provider.
         /// </summary>
         private readonly RefreshCounter blobStorageRefreshes = new();
+
+        /// <summary>
+        /// Counts the refreshes the service requested from the Azure SignalR Service provider.
+        /// </summary>
+        private readonly RefreshCounter azureSignalRRefreshes = new();
 
         /// <summary>
         /// Verifies that the service refreshes once at start and again exactly when the refresh-ahead point is reached.
@@ -273,6 +283,28 @@
         }
 
         /// <summary>
+        /// Verifies that a configured Azure SignalR Service resource gets its own refresh loop next to Azure SQL.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        [Fact]
+        public async Task Given_AzureSignalRConfigured_When_Started_Then_RefreshesAzureSignalRToken()
+        {
+            // Arrange
+            SetupRefresh(this.azureSqlTokenProvider, this.azureSqlRefreshes, _ => this.timeProvider.GetUtcNow() + TokenLifetime);
+            SetupRefresh(this.azureSignalRTokenProvider, this.azureSignalRRefreshes, _ => this.timeProvider.GetUtcNow() + TokenLifetime);
+            using var service = this.CreateService(configureAzureSignalR: true);
+
+            // Act
+            await service.StartAsync(CancellationToken.None);
+            await this.WaitForScheduledRefreshAsync(2);
+
+            // Assert
+            this.azureSqlRefreshes.Count.ShouldBe(1);
+            this.azureSignalRRefreshes.Count.ShouldBe(1);
+            await service.StopAsync(CancellationToken.None);
+        }
+
+        /// <summary>
         /// Waits, in real time, until the condition holds or the reaction timeout elapses.
         /// </summary>
         /// <param name="condition">The condition to wait for.</param>
@@ -325,8 +357,9 @@
         /// <param name="enableBackgroundRefresh">Whether background refresh is enabled in the options.</param>
         /// <param name="configureBlobStorage">Whether the Blob Storage resource is configured and its provider registered too.</param>
         /// <param name="azureSqlProvider">The Azure SQL provider to register, or <see langword="null"/> for the refreshable substitute.</param>
+        /// <param name="configureAzureSignalR">Whether the Azure SignalR Service resource is configured and its provider registered too.</param>
         /// <returns>The service.</returns>
-        private TokenRefreshService CreateService(bool enableBackgroundRefresh = true, bool configureBlobStorage = false, IAzureSqlTokenProvider? azureSqlProvider = null)
+        private TokenRefreshService CreateService(bool enableBackgroundRefresh = true, bool configureBlobStorage = false, IAzureSqlTokenProvider? azureSqlProvider = null, bool configureAzureSignalR = false)
         {
             var services = new ServiceCollection();
             services.AddSingleton(azureSqlProvider ?? this.azureSqlTokenProvider);
@@ -335,10 +368,16 @@
                 services.AddSingleton(this.blobStorageTokenProvider);
             }
 
+            if (configureAzureSignalR)
+            {
+                services.AddSingleton(this.azureSignalRTokenProvider);
+            }
+
             var options = Options.Create(new WorkloadIdentityOptions
             {
                 AzureSql = new WorkloadIdentityResourceOptions(),
                 BlobStorage = configureBlobStorage ? new WorkloadIdentityResourceOptions() : null,
+                AzureSignalR = configureAzureSignalR ? new WorkloadIdentityResourceOptions() : null,
                 RefreshAheadWindow = RefreshAheadWindow,
                 EnableBackgroundRefresh = enableBackgroundRefresh,
             });

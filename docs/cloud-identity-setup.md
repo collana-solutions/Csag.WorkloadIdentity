@@ -1,6 +1,6 @@
 # Cloud and identity setup
 
-This guide sets up everything outside your code so that an application can reach Azure SQL and Azure Blob Storage through `Csag.WorkloadIdentity` without a password, key or secret: the identity the application presents to Microsoft Entra ID (formerly Azure Active Directory), the trust that identity needs, the grants on each resource, the application's configuration and the deployment. For the code that uses the tokens, see the [package README](../Csag.WorkloadIdentity/README.md); the [Demo](../Csag.WorkloadIdentity.Demo/README.md) is a complete application. [Section F](#f-microsoft-entra-sign-in-without-a-client-secret) sets up a Microsoft Entra sign-in that needs no client secret.
+This guide sets up everything outside your code so that an application can reach Azure SQL, Azure Blob Storage and Azure SignalR Service through `Csag.WorkloadIdentity` without a password, key or secret: the identity the application presents to Microsoft Entra ID (formerly Azure Active Directory), the trust that identity needs, the grants on each resource, the application's configuration and the deployment. For the code that uses the tokens, see the [package README](../Csag.WorkloadIdentity/README.md); the [Demo](../Csag.WorkloadIdentity.Demo/README.md) is a complete application. [Section F](#f-microsoft-entra-sign-in-without-a-client-secret) sets up a Microsoft Entra sign-in that needs no client secret.
 
 ## Choose your identity configuration
 
@@ -13,13 +13,13 @@ Every access token the library obtains is issued by Microsoft Entra ID to one id
 | `Provider` in the configuration | `ManagedIdentity` | `Google` |
 | Set up in | [Section A](#a-azure-managed-identity) | [Section B](#b-google-cloud-to-azure-federation) |
 
-The choice is made per resource (`AzureSql`, `BlobStorage`), so one application can, for example, use its system-assigned identity for Azure SQL and a user-assigned identity for Blob Storage. Whatever the identity, the grants in [section C](#c-grant-access-to-the-resources) are the same, [section D](#d-configure-the-application) maps everything onto the configuration keys, and [section E](#e-deploy) covers the deployment.
+The choice is made per resource (`AzureSql`, `BlobStorage`, `AzureSignalR`), so one application can, for example, use its system-assigned identity for Azure SQL and a user-assigned identity for Blob Storage. Whatever the identity, the grants in [section C](#c-grant-access-to-the-resources) are the same, [section D](#d-configure-the-application) maps everything onto the configuration keys, and [section E](#e-deploy) covers the deployment.
 
 Values you collect along the way:
 
 | Value | Comes from | Used as |
 |---|---|---|
-| Identity name: the App Service name (system-assigned), the managed identity's name or the app registration's display name | A.1, A.2 or B.2 | Database user name (C.1); the member of the Blob role assignment (C.2) |
+| Identity name: the App Service name (system-assigned), the managed identity's name or the app registration's display name | A.1, A.2 or B.2 | Database user name (C.1); the member of the role assignments (C.2, C.3) |
 | Client ID of a user-assigned managed identity | A.2 or B.2 | `ManagedIdentity:ClientId` (A) or `Google:ClientId` (B) |
 | Application (client) ID of an app registration | B.2 | `Google:ClientId` |
 | Directory (tenant) ID | B.2 | `Google:TenantId` |
@@ -64,7 +64,7 @@ az webapp identity assign --resource-group <resource-group> --name <app-name> --
 
 ### A.3 Local development
 
-A workstation has no managed identity endpoint, so `"Provider": "ManagedIdentity"` only works on Azure. To run the same code locally, either configure the resource with the `Google` provider and Application Default Credentials (section B), or register your own `IAzureSqlTokenProvider` or `IBlobStorageTokenProvider` before calling `AddWorkloadIdentity` (every registration is a `TryAdd`, so yours wins), for example one built on `Azure.Identity`'s `AzureCliCredential`. Your provider ignores the resource section, so leave the section out. `AddWorkloadIdentity` validates only the sections that are present.
+A workstation has no managed identity endpoint, so `"Provider": "ManagedIdentity"` only works on Azure. To run the same code locally, either configure the resource with the `Google` provider and Application Default Credentials (section B), or register your own `IAzureSqlTokenProvider`, `IBlobStorageTokenProvider` or `IAzureSignalRTokenProvider` before calling `AddWorkloadIdentity` (every registration is a `TryAdd`, so yours wins), for example one built on `Azure.Identity`'s `AzureCliCredential`. Your provider ignores the resource section, so leave the section out. `AddWorkloadIdentity` validates only the sections that are present.
 
 ## B. Google Cloud to Azure federation
 
@@ -79,11 +79,11 @@ Google-signed ID token   iss = https://accounts.google.com, sub = <service accou
    │
    │  2. client assertion for <ClientId> in tenant <TenantId>      Microsoft Entra ID
    ▼
-Access token for https://database.windows.net/.default or https://storage.azure.com/.default
+Access token for the resource's scope, for example https://database.windows.net/.default
    │
-   │  3. SqlAuthenticationProvider or SqlConnection.AccessToken, or TokenCredential for BlobServiceClient
+   │  3. SqlAuthenticationProvider or SqlConnection.AccessToken, or TokenCredential for an Azure SDK client
    ▼
-Azure SQL or Blob Storage, as the identity that holds the federated credential
+Azure SQL, Blob Storage or SignalR Service, as the identity that holds the federated credential
 ```
 
 ### B.1 Google Cloud
@@ -143,7 +143,7 @@ The library never reads a key file of its own. It uses [Application Default Cred
 
 ### B.2 Microsoft Entra ID: the holder of the federated credential
 
-The federated credential is attached to a Microsoft Entra identity, and that identity is what Azure SQL and Blob Storage see. The library accepts either kind of holder in `Google:ClientId`; pick one:
+The federated credential is attached to a Microsoft Entra identity, and that identity is what the Azure resources see. The library accepts either kind of holder in `Google:ClientId`; pick one:
 
 | | Option 1: app registration | Option 2: user-assigned managed identity |
 |---|---|---|
@@ -252,6 +252,35 @@ The object ID is `az identity show ... --query principalId --output tsv` for a u
 
 The application then needs only the account's blob endpoint, `https://<storage-account>.blob.core.windows.net`. Because nothing uses the account keys any more, you can [disallow Shared Key authorization](https://learn.microsoft.com/en-us/azure/storage/common/shared-key-authorization-prevent) on the account (**Settings** > **Configuration** > **Allow storage account key access** set to **Disabled**), so that a leaked key cannot be used.
 
+### C.3 Azure SignalR Service
+
+SignalR access is granted with Azure role-based access control on the SignalR resource. Which [built-in roles](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/web-and-mobile) the identity needs depends on what the application does through the Management SDK (`Microsoft.Azure.SignalR.Management`):
+
+| Role | Grants | Needed for |
+|---|---|---|
+| **SignalR REST API Owner** | The data-plane REST API: send to all, groups, users and connections, and manage group membership | Publishing in the SDK's transient mode, which sends every message as a REST call |
+| **SignalR App Server** | Fetching a temporary access key (`auth/accessKey/action`), and server connections | Negotiating client connections: the SDK signs each client's token with a temporary key it fetches from the service with the identity's token |
+
+A serverless application that publishes and also hands out client connections needs both roles, because neither covers both uses. **SignalR Service Owner** grants everything on the data plane in one role, which is more than such an application needs.
+
+1. In the Azure portal open the SignalR resource and go to **Access control (IAM)** > **Add** > **Add role assignment**.
+2. Select the role. On the **Members** tab choose **Managed identity** and pick the identity, or choose **User, group, or service principal** and search for the app registration by name.
+3. Select **Review + assign**, and repeat for the second role.
+
+Or with the Azure CLI, given the object (principal) ID of the identity (see C.2 for how to find it):
+
+```shell
+az role assignment create \
+  --role "SignalR REST API Owner" \
+  --assignee-object-id <principal-object-id> \
+  --assignee-principal-type ServicePrincipal \
+  --scope /subscriptions/<subscription-id>/resourceGroups/<resource-group>/providers/Microsoft.SignalRService/signalR/<signalr-name>
+```
+
+A new role assignment can take up to 30 minutes to take effect, according to [Authorize requests to SignalR resources with Microsoft Entra applications](https://learn.microsoft.com/en-us/azure/azure-signalr/signalr-howto-authorize-application). Grant the roles before the application switches from its connection string.
+
+The application then needs only the resource's endpoint, `https://<signalr-name>.service.signalr.net`. Because nothing uses the access keys any more, you can [disable local authentication](https://learn.microsoft.com/en-us/azure/azure-signalr/howto-disable-local-auth) on the resource (the `disableLocalAuth` property, `local_auth_enabled = false` in Terraform), which deletes its access keys, so that a leaked key cannot be used.
+
 ## D. Configure the application
 
 The library binds its options from the `Csag.WorkloadIdentity` configuration section. Each resource has its own section that selects the `Provider` and carries that provider's settings. These are the exact keys, with the environment variable form that .NET maps to the same keys (`__` stands for the `:` separator; the `.` in the section name is part of the variable name):
@@ -268,6 +297,7 @@ The library binds its options from the `Csag.WorkloadIdentity` configuration sec
 | `Csag.WorkloadIdentity:AzureSql:Google:ClientId` | `Csag.WorkloadIdentity__AzureSql__Google__ClientId` | Application (client) ID of the app registration, or client ID of the user-assigned identity, holding the federated credential (B.2) |
 | `Csag.WorkloadIdentity:AzureSql:Google:ServiceAccountEmail` | `Csag.WorkloadIdentity__AzureSql__Google__ServiceAccountEmail` | Service account email (B.1.2) |
 | `Csag.WorkloadIdentity:BlobStorage:...` | `Csag.WorkloadIdentity__BlobStorage__...` | The same keys, for Blob Storage |
+| `Csag.WorkloadIdentity:AzureSignalR:...` | `Csag.WorkloadIdentity__AzureSignalR__...` | The same keys, for Azure SignalR Service |
 | `Csag.WorkloadIdentity:RefreshAheadWindow` | `Csag.WorkloadIdentity__RefreshAheadWindow` | Optional; how long before expiry a token is refreshed. Default `00:05:00`; must be positive and at most five minutes |
 | `Csag.WorkloadIdentity:EnableBackgroundRefresh` | `Csag.WorkloadIdentity__EnableBackgroundRefresh` | Optional; default `true` |
 
@@ -311,7 +341,7 @@ For a user-assigned identity replace the `ManagedIdentity` section with `{ "Clie
 }
 ```
 
-The connection string and the storage account's blob endpoint are your own application's settings (the Demo reads `ConnectionStrings:DefaultConnection`). The connection string names the server and database and carries no credentials such as `User ID`/`Password` or `Integrated Security`: the access token is the credential, and `Encrypt=True` keeps the token and the data on TLS. `Authentication=Active Directory Default` makes `SqlClient` ask the `SqlAuthenticationProvider` that the application installs for the token, as the Demo does; an application that assigns `SqlConnection.AccessToken` itself must leave the `Authentication` keyword out. The [package README](../Csag.WorkloadIdentity/README.md) shows how to register the library, both ways of handing the token to `SqlClient`, and how to build a `BlobServiceClient` on the library's `TokenCredential` adapter.
+Two resources that use the same identity repeat the same `Google` values in each section, and the library then exchanges for both through one credential. The connection string, the storage account's blob endpoint and the SignalR endpoint are your own application's settings (the Demo reads `ConnectionStrings:DefaultConnection`). The connection string names the server and database and carries no credentials such as `User ID`/`Password` or `Integrated Security`: the access token is the credential, and `Encrypt=True` keeps the token and the data on TLS. `Authentication=Active Directory Default` makes `SqlClient` ask the `SqlAuthenticationProvider` that the application installs for the token, as the Demo does; an application that assigns `SqlConnection.AccessToken` itself must leave the `Authentication` keyword out. The [package README](../Csag.WorkloadIdentity/README.md) shows how to register the library, both ways of handing the token to `SqlClient`, and how to build a `BlobServiceClient` on the library's `TokenCredential` adapter.
 
 ## E. Deploy
 
@@ -479,10 +509,10 @@ Once every application and every person reaches the database with a Microsoft En
 
    A Microsoft Entra admin must be set first (C.1.1), and the person enabling the feature needs a highly privileged role on the server such as Owner, Contributor or SQL Security Manager. Microsoft describes the feature and its consequences under [Microsoft Entra-only authentication](https://learn.microsoft.com/en-us/azure/azure-sql/database/authentication-azure-ad-only-authentication).
 
-The counterpart for Blob Storage is disallowing Shared Key authorization on the storage account, described at the end of C.2.
+The counterpart for Blob Storage is disallowing Shared Key authorization on the storage account, described at the end of C.2, and for Azure SignalR Service disabling local authentication, described at the end of C.3.
 
 ## References
 
 - Google Cloud: [Create short-lived credentials for a service account](https://cloud.google.com/iam/docs/create-short-lived-credentials-direct), [Service account credentials and self-impersonation](https://cloud.google.com/iam/docs/service-account-creds), [IAM roles and permissions](https://cloud.google.com/iam/docs/roles-permissions/iam), [`generateIdToken`](https://cloud.google.com/iam/docs/reference/credentials/rest/v1/projects.serviceAccounts/generateIdToken), [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials), [Cloud Run service identity](https://cloud.google.com/run/docs/configuring/services/service-identity), [Cloud Run environment variables](https://cloud.google.com/run/docs/configuring/services/environment-variables)
 - Microsoft Entra ID: [Managed identities for Azure resources](https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/overview), [Manage user-assigned managed identities](https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/how-manage-user-assigned-managed-identities), [Workload identity federation](https://learn.microsoft.com/en-us/entra/workload-id/workload-identity-federation), [Configure an app to trust an external identity provider](https://learn.microsoft.com/en-us/entra/workload-id/workload-identity-federation-create-trust), [Configure a user-assigned managed identity to trust an external identity provider](https://learn.microsoft.com/en-us/entra/workload-id/workload-identity-federation-create-trust-user-assigned-managed-identity)
-- Azure: [Managed identities in App Service](https://learn.microsoft.com/en-us/azure/app-service/overview-managed-identity), [Connect App Service to Azure SQL without secrets](https://learn.microsoft.com/en-us/azure/app-service/tutorial-connect-msi-sql-database), [App Service settings](https://learn.microsoft.com/en-us/azure/app-service/configure-common), [Microsoft Entra authentication for Azure SQL](https://learn.microsoft.com/en-us/azure/azure-sql/database/authentication-aad-overview), [Azure SQL with a service principal](https://learn.microsoft.com/en-us/azure/azure-sql/database/authentication-aad-service-principal), [Microsoft Entra-only authentication](https://learn.microsoft.com/en-us/azure/azure-sql/database/authentication-azure-ad-only-authentication), [Database-level roles](https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/database-level-roles), [Authorize Blob access with Microsoft Entra ID](https://learn.microsoft.com/en-us/azure/storage/blobs/authorize-access-azure-active-directory), [Assign an Azure role for blob data](https://learn.microsoft.com/en-us/azure/storage/blobs/assign-azure-role-data-access), [Built-in roles for Storage](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/storage), [`SqlConnection.AccessToken`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.data.sqlclient.sqlconnection.accesstoken), [`BlobServiceClient`](https://learn.microsoft.com/en-us/dotnet/api/azure.storage.blobs.blobserviceclient)
+- Azure: [Managed identities in App Service](https://learn.microsoft.com/en-us/azure/app-service/overview-managed-identity), [Connect App Service to Azure SQL without secrets](https://learn.microsoft.com/en-us/azure/app-service/tutorial-connect-msi-sql-database), [App Service settings](https://learn.microsoft.com/en-us/azure/app-service/configure-common), [Microsoft Entra authentication for Azure SQL](https://learn.microsoft.com/en-us/azure/azure-sql/database/authentication-aad-overview), [Azure SQL with a service principal](https://learn.microsoft.com/en-us/azure/azure-sql/database/authentication-aad-service-principal), [Microsoft Entra-only authentication](https://learn.microsoft.com/en-us/azure/azure-sql/database/authentication-azure-ad-only-authentication), [Database-level roles](https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/database-level-roles), [Authorize Blob access with Microsoft Entra ID](https://learn.microsoft.com/en-us/azure/storage/blobs/authorize-access-azure-active-directory), [Assign an Azure role for blob data](https://learn.microsoft.com/en-us/azure/storage/blobs/assign-azure-role-data-access), [Built-in roles for Storage](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/storage), [`SqlConnection.AccessToken`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.data.sqlclient.sqlconnection.accesstoken), [`BlobServiceClient`](https://learn.microsoft.com/en-us/dotnet/api/azure.storage.blobs.blobserviceclient), [Authorize SignalR requests with Microsoft Entra applications](https://learn.microsoft.com/en-us/azure/azure-signalr/signalr-howto-authorize-application), [Built-in roles for SignalR](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/web-and-mobile), [Disable local authentication for SignalR](https://learn.microsoft.com/en-us/azure/azure-signalr/howto-disable-local-auth)

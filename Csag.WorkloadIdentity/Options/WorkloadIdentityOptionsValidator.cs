@@ -25,6 +25,7 @@
             var builder = new ValidateOptionsResultBuilder();
             ValidateResource(nameof(options.AzureSql), options.AzureSql, builder);
             ValidateResource(nameof(options.BlobStorage), options.BlobStorage, builder);
+            ValidateResource(nameof(options.AzureSignalR), options.AzureSignalR, builder);
             ValidateEntra(nameof(options.Entra), options.Entra, builder);
 
             if (options.RefreshAheadWindow <= TimeSpan.Zero)

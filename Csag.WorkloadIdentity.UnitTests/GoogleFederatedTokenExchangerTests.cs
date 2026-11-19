@@ -45,6 +45,11 @@
         private const string BlobStorageScope = "https://storage.azure.com/.default";
 
         /// <summary>
+        /// The OAuth 2.0 scope of Azure SignalR Service.
+        /// </summary>
+        private const string AzureSignalRScope = "https://signalr.azure.com/.default";
+
+        /// <summary>
         /// The substituted Google ID token provider.
         /// </summary>
         private readonly IGoogleIdTokenProvider googleIdTokenProvider = Substitute.For<IGoogleIdTokenProvider>();
@@ -147,6 +152,31 @@
             this.credentialFactory.Received(2).Create(TenantId, ClientId, Arg.Any<Func<CancellationToken, Task<string>>>());
             await this.credential.Received(1).GetTokenAsync(Arg.Is<TokenRequestContext>(context => context.Scopes.Single() == AzureSqlScope), Arg.Any<CancellationToken>());
             await this.credential.Received(1).GetTokenAsync(Arg.Is<TokenRequestContext>(context => context.Scopes.Single() == BlobStorageScope), Arg.Any<CancellationToken>());
+        }
+
+        /// <summary>
+        /// Verifies that resources federating through the same identity share one credential, while each still
+        /// requests its own scope.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        [Fact]
+        public async Task Given_TwoResourcesWithSameIdentity_When_ExchangeAsync_Then_ShareOneCredentialAndRequestEachScope()
+        {
+            // Arrange
+            var exchanger = this.CreateExchanger(new WorkloadIdentityOptions
+            {
+                AzureSql = CreateGoogleResource(AzureSqlServiceAccountEmail),
+                AzureSignalR = CreateGoogleResource(AzureSqlServiceAccountEmail),
+            });
+
+            // Act
+            await exchanger.ExchangeAsync(TokenScope.AzureSql, CancellationToken.None);
+            await exchanger.ExchangeAsync(TokenScope.AzureSignalR, CancellationToken.None);
+
+            // Assert
+            this.credentialFactory.Received(1).Create(TenantId, ClientId, Arg.Any<Func<CancellationToken, Task<string>>>());
+            await this.credential.Received(1).GetTokenAsync(Arg.Is<TokenRequestContext>(context => context.Scopes.Single() == AzureSqlScope), Arg.Any<CancellationToken>());
+            await this.credential.Received(1).GetTokenAsync(Arg.Is<TokenRequestContext>(context => context.Scopes.Single() == AzureSignalRScope), Arg.Any<CancellationToken>());
         }
 
         /// <summary>

@@ -134,6 +134,7 @@
             {
                 TokenScope.AzureSql => this.serviceProvider.GetRequiredService<IAzureSqlTokenProvider>(),
                 TokenScope.BlobStorage => this.serviceProvider.GetRequiredService<IBlobStorageTokenProvider>(),
+                TokenScope.AzureSignalR => this.serviceProvider.GetRequiredService<IAzureSignalRTokenProvider>(),
                 _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, "Unknown token scope."),
             };
         }

@@ -76,8 +76,8 @@
         /// Registers the token pipeline. Each service is a Try* registration, so a consumer can substitute it by
         /// registering its own implementation first. The hosted service is the exception: it is added with
         /// TryAddEnumerable, which prevents duplicates but not substitution, and is turned off through
-        /// <see cref="WorkloadIdentityOptions.EnableBackgroundRefresh"/>. Repeated calls do not duplicate anything. Both
-        /// resource providers and the Entra client assertion provider are always registered; resolving one whose
+        /// <see cref="WorkloadIdentityOptions.EnableBackgroundRefresh"/>. Repeated calls do not duplicate anything. Every
+        /// resource provider and the Entra client assertion provider are always registered; resolving one whose
         /// section is not configured throws an <see cref="InvalidOperationException"/> that names the missing section.
         /// </summary>
         /// <param name="services">The service collection.</param>
@@ -94,6 +94,7 @@
             services.TryAddSingleton<ResourceTokenProviderFactory>();
             services.TryAddSingleton<IAzureSqlTokenProvider>(serviceProvider => new AzureSqlTokenProvider(serviceProvider.GetRequiredService<ResourceTokenProviderFactory>().Create(TokenScope.AzureSql)));
             services.TryAddSingleton<IBlobStorageTokenProvider>(serviceProvider => new BlobStorageTokenProvider(serviceProvider.GetRequiredService<ResourceTokenProviderFactory>().Create(TokenScope.BlobStorage)));
+            services.TryAddSingleton<IAzureSignalRTokenProvider>(serviceProvider => new AzureSignalRTokenProvider(serviceProvider.GetRequiredService<ResourceTokenProviderFactory>().Create(TokenScope.AzureSignalR)));
             services.TryAddSingleton<IEntraClientAssertionProvider, EntraClientAssertionProvider>();
             services.AddHostedService<TokenRefreshService>();
         }
