@@ -1,9 +1,7 @@
 {
   "name": "csag-workload-identity",
   "private": true,
-  "workspaces": [
-    "Csag.WorkloadIdentity"
-  ],
+  "packageManager": "pnpm@11.22.0",
   "scripts": {
     "changeset": "changeset",
     "version-packages": "node scripts/sync-versions.mjs",

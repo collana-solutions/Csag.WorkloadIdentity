@@ -42,7 +42,8 @@ updates:
         patterns:
           - "*"
 
-  # npm dependencies: the changesets release tooling at the repo root.
+  # pnpm dependencies: the changesets release tooling at the repo root.
+  # Dependabot handles pnpm workspaces under the "npm" ecosystem.
   - package-ecosystem: "npm"
     directory: "/"
     schedule:

@@ -5,7 +5,7 @@ Thank you for helping improve Csag.WorkloadIdentity. Bug reports, questions and 
 ## Prerequisites
 
 - The .NET SDK pinned in [global.json](./global.json) (10.0.4xx; a newer 10.0 minor rolls forward), plus the **.NET 8 runtime**, because the tests also run on `net8.0`. `dotnet --list-runtimes` should list `Microsoft.NETCore.App 8.0.x` alongside 10.0.x.
-- [Node.js](https://nodejs.org/) 24 for the changesets tooling: run `npm ci` once in the repository root.
+- [Node.js](https://nodejs.org/) 24 for the changesets tooling: run `corepack enable` and then `pnpm install` once in the repository root. Corepack activates the pnpm version pinned in `package.json`.
 - Docker, only if you want to build the Demo container (see the [Demo README](./Csag.WorkloadIdentity.Demo/README.md)).
 
 ## Build and test
@@ -39,15 +39,15 @@ Package versions are managed centrally with transitive pinning:
 2. Reference the package in the project file without a version: `<PackageReference Include="Package.Name" />`.
 3. Run `dotnet restore` (without `--locked-mode`) so that the `packages.lock.json` files update, and commit them together with the change.
 
-Dependabot proposes routine updates and generates their changesets automatically.
+Dependabot proposes routine updates and generates their changesets automatically. Once a month the **Refresh lockfiles** workflow opens a PR that refreshes the transitive versions in the lock files, and another that removes transitive pins which no longer clear a vulnerability. Mark a pin with `KeepPin="true"` in `Directory.Packages.props` when it is held for another reason.
 
 ## Changesets
 
 Releases follow the [collana-solutions release playbook](https://github.com/collana-solutions/release-playbook) with [Changesets](https://github.com/changesets/changesets); the [root README](./README.md#release-process) describes the pipeline. What it means for a pull request:
 
-- Every PR that changes the library needs a changeset file in `.changeset/`. Run `npx changeset`, pick the bump type and describe the change **for consumers of the package**; the text becomes the CHANGELOG entry.
+- Every PR that changes the library needs a changeset file in `.changeset/`. Run `pnpm changeset`, pick the bump type and describe the change **for consumers of the package**; the text becomes the CHANGELOG entry.
 - The package is on a `0.x` version, so the bump convention is: **minor** for a breaking or behaviour-changing change, **patch** for a fix or for documentation that ships inside the package (the package README does).
-- A change that does not touch the package, such as CI, repository documentation or the Demo, still needs a changeset so that the check passes: run `npx changeset --empty`, which creates a file with an empty front matter.
+- A change that does not touch the package, such as CI, repository documentation or the Demo, still needs a changeset so that the check passes: run `pnpm changeset --empty`, which creates a file with an empty front matter.
 - CI's **Changeset Check** fails a PR without a changeset. Do not edit `CHANGELOG.md` or the version in the `.csproj` by hand; the "chore: version packages" PR does that.
 
 A changeset file looks like this:

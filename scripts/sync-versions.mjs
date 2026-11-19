@@ -3,20 +3,18 @@ import path from "node:path";
 import { execSync } from "node:child_process";
 
 // Run changeset version first
-execSync("npx changeset version", { stdio: "inherit" });
+execSync("pnpm exec changeset version", { stdio: "inherit" });
 
-// Each npm workspace entry is a .NET project directory carrying a package.json
+// Each pnpm workspace package is a .NET project directory carrying a package.json
 // that exists solely so changesets can track its version. Mirror that version
-// into the project's .csproj so the Version Packages PR bumps both.
-const repoRoot = path.resolve(import.meta.dirname, "..");
-const { workspaces } = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
+// into the project's .csproj so the Version Packages PR bumps both. The list
+// also holds the repository root, which has no version and no .csproj.
+const workspacePackages = JSON.parse(
+  execSync("pnpm ls --recursive --depth -1 --json", { encoding: "utf8" }),
+);
 
-for (const workspace of workspaces) {
-  const projDir = path.join(repoRoot, workspace);
-  const pkgJsonPath = path.join(projDir, "package.json");
-  if (!fs.existsSync(pkgJsonPath)) continue;
-
-  const { version } = JSON.parse(fs.readFileSync(pkgJsonPath, "utf8"));
+for (const { path: projDir, version } of workspacePackages) {
+  if (!version) continue;
 
   for (const csproj of fs.readdirSync(projDir).filter((f) => f.endsWith(".csproj"))) {
     const csprojPath = path.join(projDir, csproj);

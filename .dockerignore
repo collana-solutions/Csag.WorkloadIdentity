@@ -13,7 +13,8 @@ artifacts/
 docs/
 scripts/
 **/package.json
-package-lock.json
+pnpm-lock.yaml
+pnpm-workspace.yaml
 **/*.user
 **/*.md
 # The library's csproj packs its README into the NuGet package.
