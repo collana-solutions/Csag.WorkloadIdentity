@@ -1,5 +1,46 @@
 # @neolution-ch/csag-workload-identity
 
+## 0.2.0
+
+### Minor Changes
+
+- [#32](https://github.com/collana-solutions/Csag.WorkloadIdentity/pull/32) [`23401ba`](https://github.com/collana-solutions/Csag.WorkloadIdentity/commit/23401babd2c95f20d7285b866090d30aeab1ded1) Thanks [@neotrow](https://github.com/neotrow)! - Add Azure SignalR Service as a third resource. The new `AzureSignalR` section has the same shape as `AzureSql` and `BlobStorage`, and `IAzureSignalRTokenProvider` returns access tokens for the scope `https://signalr.azure.com/.default`. The background refresh keeps its token fresh like those of the other resources.
+  
+  Wrap the provider in `WorkloadIdentityTokenCredential` to authenticate the Azure SignalR Management SDK with a `ServiceEndpoint(Uri, TokenCredential)` instead of an access key. Resources that name the same identity share one credential, so an application on Cloud Run can use the identity it already has for Azure SQL. The identity needs the roles **SignalR REST API Owner** and **SignalR App Server** on the SignalR resource to publish and to negotiate client connections. The setup guide describes them.
+
+- [#26](https://github.com/collana-solutions/Csag.WorkloadIdentity/pull/26) [`01e3e6c`](https://github.com/collana-solutions/Csag.WorkloadIdentity/commit/01e3e6cc293c45e581695c5da47b648c46704068) Thanks [@neoscie](https://github.com/neoscie)! - Add `IEntraClientAssertionProvider` and the `Entra` entry. A Microsoft Entra sign-in can now send a client assertion in place of a client secret: a Google ID token of the service account (`Provider` `Google`, the default) or a token of a managed identity (`Provider` `ManagedIdentity`, configured as for a resource). A user-assigned managed identity is preferred, because the object ID of a system-assigned one changes when the Azure resource is deleted and created again. The background refresh does not include the entry.
+  
+  Every section is now optional. A host without any `AzureSql`, `BlobStorage` or `Entra` section starts, and the services do nothing; it no longer fails with "At least one resource section (AzureSql or BlobStorage) must be configured." An application that calls `AddWorkloadIdentity` only when its section has a value can now call it always.
+
+### Patch Changes
+
+- [#30](https://github.com/collana-solutions/Csag.WorkloadIdentity/pull/30) [`1b5cb92`](https://github.com/collana-solutions/Csag.WorkloadIdentity/commit/1b5cb92630b96862d89b4d228a8b9af8f19b8652) Thanks [@neotrow](https://github.com/neotrow)! - The package links (repository, project URL and the links in the package README) point to the collana-solutions GitHub organization.
+
+- [#28](https://github.com/collana-solutions/Csag.WorkloadIdentity/pull/28) [`6a9870e`](https://github.com/collana-solutions/Csag.WorkloadIdentity/commit/6a9870ee3be8f6b22558a7668833e4085285fbaa) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump the nuget-ecosystem group with 14 updates
+  
+  | Package | From | To | Bump |
+  |---------|------|----|------|
+  | Azure.Core | 1.63.0 | 1.64.0 | 🟡 minor |
+  | Grpc.Core.Api | 2.84.0 | 2.85.0 | 🟡 minor |
+  | Microsoft.EntityFrameworkCore.SqlServer | 10.0.12 | 10.0.14 | 🟢 patch |
+  | Microsoft.Extensions.Configuration | 10.0.12 | 10.0.14 | 🟢 patch |
+  | Microsoft.Extensions.DependencyInjection | 10.0.12 | 10.0.14 | 🟢 patch |
+  | Microsoft.Extensions.DependencyInjection.Abstractions | 10.0.12 | 10.0.14 | 🟢 patch |
+  | Microsoft.Extensions.Hosting | 10.0.12 | 10.0.14 | 🟢 patch |
+  | Microsoft.Extensions.Hosting.Abstractions | 10.0.12 | 10.0.14 | 🟢 patch |
+  | Microsoft.Extensions.Logging | 10.0.12 | 10.0.14 | 🟢 patch |
+  | Microsoft.Extensions.Logging.Abstractions | 10.0.12 | 10.0.14 | 🟢 patch |
+  | Microsoft.Extensions.Options | 10.0.12 | 10.0.14 | 🟢 patch |
+  | Microsoft.Extensions.Options.ConfigurationExtensions | 10.0.12 | 10.0.14 | 🟢 patch |
+  | Microsoft.Extensions.TimeProvider.Testing | 10.10.0 | 10.11.0 | 🟡 minor |
+  | Microsoft.NET.Test.Sdk | 18.10.1 | 18.11.0 | 🟡 minor |
+
+- [#21](https://github.com/collana-solutions/Csag.WorkloadIdentity/pull/21) [`0dd9b1d`](https://github.com/collana-solutions/Csag.WorkloadIdentity/commit/0dd9b1df92e628a8804f710c50b12ee13d1b7148) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump the nuget-ecosystem group with 1 update
+  
+  | Package | From | To | Bump |
+  |---------|------|----|------|
+  | xunit.runner.visualstudio | 4.0.0 | 4.0.1 | 🟢 patch |
+
 ## 0.1.1
 
 ### Patch Changes
