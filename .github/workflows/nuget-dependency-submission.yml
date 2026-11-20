@@ -2,7 +2,7 @@ name: NuGet Dependency Submission
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
     inputs:
       dry-run:
@@ -10,18 +10,21 @@ on:
         type: boolean
         default: true
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   dependency-submission:
     runs-on: ubuntu-latest
-
+    # The dependency snapshot API requires contents: write.
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v6.0.0
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
 
@@ -37,14 +40,15 @@ jobs:
         if: inputs.dry-run != true
         env:
           GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           gh api \
             --method POST \
-            repos/${{ github.repository }}/dependency-graph/snapshots \
+            "repos/$REPOSITORY/dependency-graph/snapshots" \
             --input snapshot.json
 
       - name: Upload snapshot artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: dependency-snapshot

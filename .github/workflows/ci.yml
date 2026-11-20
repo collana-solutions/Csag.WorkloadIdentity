@@ -6,10 +6,11 @@ on:
       - main
   # Runs on pull requests to any base, so stacked PRs are checked before they retarget main.
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
 
-permissions:
-  contents: read
+permissions: {}
 
+# A newer push to the same PR or branch replaces the run that has not finished.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -17,16 +18,19 @@ concurrency:
 jobs:
   changeset-check:
     name: Changeset Check
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
 
@@ -41,10 +45,13 @@ jobs:
       # alone is no proof (anyone can push a changeset-release/* branch), so the PR must also come from the bot.
       - name: Check for changesets
         if: ${{ !(startsWith(github.head_ref, 'changeset-release/') && github.event.pull_request.user.login == 'csag-changesets-bot[bot]') }}
-        run: pnpm exec changeset status --since=origin/${{ github.base_ref }}
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: pnpm exec changeset status --since="origin/$BASE_REF"
 
   build:
     name: Build, Test & Pack
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -53,12 +60,14 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v6.0.0
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          # global.json pins the SDK; 8.x supplies the runtime the net8.0 test leg needs.
+          # global.json pins the SDK. 8.x supplies the runtime the net8.0 test leg needs.
           global-json-file: global.json
           dotnet-version: 8.x
 
@@ -69,13 +78,13 @@ jobs:
         run: dotnet build --configuration Release --no-restore
 
       # GitHubActionsTestLogger writes failure annotations and the job summary from
-      # inside the run (no token needed); the TRX files feed the PR comment below.
+      # inside the run (no token needed). The TRX files feed the PR comment below.
       - name: Test
         run: dotnet test --configuration Release --no-build --logger GitHubActions --logger trx --results-directory ./test-results
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-results
           path: ./test-results
@@ -84,7 +93,7 @@ jobs:
       # Sticky PR comment with per-suite totals, updated in place on every push.
       - name: Publish test results
         if: always()
-        uses: EnricoMi/publish-unit-test-result-action@v2.25.0
+        uses: EnricoMi/publish-unit-test-result-action@7622c5bf3d112a72ab4fa3951c2aa5723d8ab92d # v2.25.0
         with:
           files: ./test-results/**/*.trx
 
@@ -92,7 +101,7 @@ jobs:
         run: dotnet pack Csag.WorkloadIdentity --configuration Release --no-build -o ./nupkgs
 
       - name: Upload packages
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: nupkgs
           path: ./nupkgs
@@ -100,10 +109,15 @@ jobs:
 
   docker:
     name: Docker (Demo image)
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Build Demo image
         run: docker build -f Csag.WorkloadIdentity.Demo/Dockerfile -t csag-demo .
@@ -125,3 +139,24 @@ jobs:
       - name: Demo container logs
         if: failure()
         run: docker logs csag-demo || true
+
+  # Audits the workflows for template injection, unpinned actions, broad permissions and similar
+  # problems. With advanced-security off, a finding fails this job instead of only landing in code
+  # scanning. Exceptions live in .github/zizmor.yml, each with its reason.
+  zizmor:
+    name: zizmor
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e # v0.7.1
+        with:
+          advanced-security: false

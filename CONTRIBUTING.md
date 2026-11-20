@@ -54,7 +54,7 @@ A changeset file looks like this:
 
 ```markdown
 ---
-"@neolution-ch/csag-workload-identity": patch
+"@collana-solutions/csag-workload-identity": patch
 ---
 
 Describe the change from the consumer's point of view.

@@ -4,14 +4,17 @@ on:
   release:
     types: [published]
   # Publishes an existing release again, for example after a failed push. A re-run of a release run uses the
-  # workflow as it was at the release tag; a dispatch from main uses this file and checks out the tag.
+  # workflow as it was at the release tag. A dispatch from main uses this file and checks out the tag.
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag to publish, for example @neolution-ch/csag-workload-identity@0.2.0
+        description: Release tag to publish, for example @collana-solutions/csag-workload-identity@0.3.0
         required: true
         type: string
 
+permissions: {}
+
+# Runs are serialized and pushes use --skip-duplicate, so a second run for the same version pushes nothing.
 concurrency:
   group: nuget-publish
   cancel-in-progress: false
@@ -19,6 +22,8 @@ concurrency:
 jobs:
   publish:
     name: Publish to nuget.org
+    # Only a release of the package itself publishes, not a GitHub Release with another tag.
+    if: startsWith(inputs.tag || github.event.release.tag_name, '@collana-solutions/csag-workload-identity@')
     runs-on: ubuntu-latest
     # nuget.org's trusted publishing policy for this package names this environment, and the OIDC token
     # carries it, so only this job can obtain a push key.
@@ -28,23 +33,24 @@ jobs:
       id-token: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || github.ref }}
+          persist-credentials: false
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v6.0.0
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          # global.json pins the SDK; 8.x supplies the runtime the net8.0 test leg needs.
+          # global.json pins the SDK. 8.x supplies the runtime the net8.0 test leg needs.
           global-json-file: global.json
           dotnet-version: 8.x
 
       - name: Extract version from tag
         id: version
         env:
-          TAG: ${{ inputs.tag || github.ref_name }}
+          TAG: ${{ inputs.tag || github.event.release.tag_name }}
         run: |
-          # Tag format: @neolution-ch/csag-workload-identity@0.1.0
+          # Tag format: @collana-solutions/csag-workload-identity@0.3.0
           echo "version=${TAG##*@}" >> "$GITHUB_OUTPUT"
 
       - name: Remove changesets version-tracking stubs
@@ -77,10 +83,11 @@ jobs:
       # NUGET_USER is the nuget.org profile name of the member of collana-solutions who owns the policy.
       - name: Log in to nuget.org
         id: nuget-login
-        uses: NuGet/login@v1.2.0
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
         with:
           user: ${{ vars.NUGET_USER }}
 
+      # The .snupkg next to the .nupkg goes to the nuget.org symbol server with the same key.
       - name: Push to nuget.org
         env:
           NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}

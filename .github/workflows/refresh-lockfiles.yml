@@ -44,16 +44,19 @@ concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: true
 
-permissions:
-  contents: write
-  pull-requests: write
+permissions: {}
 
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    # The PR is pushed and opened with the App token, so GITHUB_TOKEN only reads.
+    permissions:
+      contents: read
 
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       # -----------------------------------------------------------------------
       # NuGet — refresh the transitive versions inside every packages.lock.json.
@@ -71,7 +74,7 @@ jobs:
       # packages.lock.json is updated.
       # -----------------------------------------------------------------------
       - name: Setup .NET
-        uses: actions/setup-dotnet@v6.0.0
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
 
@@ -92,7 +95,7 @@ jobs:
       # an exception in pnpm-workspace.yaml.
       # -----------------------------------------------------------------------
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
 
@@ -158,7 +161,7 @@ jobs:
       - name: Generate App Token
         if: inputs.dry-run != true
         id: app-token
-        uses: actions/create-github-app-token@v3
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ secrets.CHANGESETS_BOT_CLIENT_ID }}
           private-key: ${{ secrets.CHANGESETS_BOT_PRIVATE_KEY }}
@@ -167,7 +170,7 @@ jobs:
 
       - name: Create Pull Request
         if: inputs.dry-run != true
-        uses: peter-evans/create-pull-request@v8
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
           token: ${{ steps.app-token.outputs.token }}
           branch: chore/refresh-lockfiles
@@ -230,24 +233,32 @@ jobs:
   # ---------------------------------------------------------------------------
   prune-transitive-pins:
     runs-on: ubuntu-latest
+    # The PR is pushed and opened with the App token, so GITHUB_TOKEN only reads.
+    permissions:
+      contents: read
 
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v6.0.0
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
 
       # One restore and one vulnerability scan per pin, about a minute each.
       - name: Prune transitive pins
+        env:
+          DRY_RUN_FLAG: ${{ inputs.dry-run && '--dry-run' || '' }}
         run: |
-          node scripts/prune-transitive-pins.mjs ${{ inputs.dry-run && '--dry-run' || '' }} "$RUNNER_TEMP/prune-report.md"
+          # DRY_RUN_FLAG stays unquoted so that an empty value passes no argument.
+          node scripts/prune-transitive-pins.mjs $DRY_RUN_FLAG "$RUNNER_TEMP/prune-report.md"
           cat "$RUNNER_TEMP/prune-report.md" >> "$GITHUB_STEP_SUMMARY"
 
       # Same rules as the changeset step of the refresh job above.
@@ -268,7 +279,7 @@ jobs:
       - name: Generate App Token
         if: inputs.dry-run != true
         id: app-token
-        uses: actions/create-github-app-token@v3
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ secrets.CHANGESETS_BOT_CLIENT_ID }}
           private-key: ${{ secrets.CHANGESETS_BOT_PRIVATE_KEY }}
@@ -278,7 +289,7 @@ jobs:
       # With no pin removed there is no diff, and the action opens no PR.
       - name: Create Pull Request
         if: inputs.dry-run != true
-        uses: peter-evans/create-pull-request@v8
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
           token: ${{ steps.app-token.outputs.token }}
           branch: chore/prune-transitive-pins

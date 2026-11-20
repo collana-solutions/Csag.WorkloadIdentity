@@ -1,4 +1,4 @@
-# @neolution-ch/csag-workload-identity
+# @collana-solutions/csag-workload-identity
 
 ## 0.2.0
 

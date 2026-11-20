@@ -11,6 +11,8 @@ on:
       - "release/**"
     types: [opened, synchronize, reopened, ready_for_review]
 
+permissions: {}
+
 # A newer push to the same PR replaces the build that has not finished.
 concurrency:
   group: nuget-preview-${{ github.event.pull_request.number }}
@@ -33,10 +35,12 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v6.0.0
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
 
@@ -67,8 +71,11 @@ jobs:
         run: dotnet restore --locked-mode
 
       - name: Pack
-        run: dotnet pack Csag.WorkloadIdentity --configuration Release --no-restore -p:Version=${{ steps.version.outputs.version }} -o ./nupkgs
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: dotnet pack Csag.WorkloadIdentity --configuration Release --no-restore -p:Version="$VERSION" -o ./nupkgs
 
+      # The .snupkg next to the .nupkg goes to the feed's symbol endpoint.
       - name: Push to feedz.io
         env:
           FEEDZ_TOKEN: ${{ secrets.FEEDZ_TOKEN }}
@@ -80,7 +87,7 @@ jobs:
 
       # One comment per PR. Each push updates the same comment.
       - name: Comment preview version
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           VERSION: ${{ steps.version.outputs.version }}
         with:
