@@ -1,5 +1,10 @@
 name: NuGet Publish
 
+# The work is split into two jobs. `pack` restores, builds, tests and packs without any
+# credential, and uploads the package as an artifact. `publish` is the only job that can
+# request an OIDC token. It checks nothing out, builds nothing and only pushes the package
+# it downloads. Restore and build run MSBuild targets, analyzers and source generators that
+# come from NuGet packages, so code from the dependency tree never runs next to the push key.
 on:
   release:
     types: [published]
@@ -15,24 +20,14 @@ on:
 permissions: {}
 
 jobs:
-  publish:
-    name: Publish to nuget.org
-    # Only a release of the package itself publishes, not a GitHub Release with another tag.
+  pack:
+    name: Pack
+    # Only a release of the package itself publishes, not a GitHub Release with another tag. The publish
+    # job needs this one, so it is skipped together with it.
     if: startsWith(inputs.tag || github.event.release.tag_name, '@collana-solutions/csag-workload-identity@')
     runs-on: ubuntu-latest
-    # The group is on the job, so a skipped release with another tag never enters it, and every
-    # release tag has its own group, so no release can replace the pending run of another version.
-    # Runs for the same tag wait for each other, and pushes use --skip-duplicate, so a second run for
-    # the same version pushes nothing.
-    concurrency:
-      group: nuget-publish-${{ inputs.tag || github.event.release.tag_name }}
-      cancel-in-progress: false
-    # nuget.org's trusted publishing policy for this package names this environment, and the OIDC token
-    # carries it, so only this job can obtain a push key.
-    environment: production
     permissions:
       contents: read
-      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -71,6 +66,9 @@ jobs:
       # fails when the tag and the project disagree. The package has to carry the release version, because
       # --skip-duplicate would skip a package that kept an older one and leave the new version unpublished.
       # The package.json files exist for changesets only, so the package may not contain one.
+      # Every directory that holds a package.json with a version and a .csproj is a project changesets has
+      # just tagged, so each of them has to produce a package. A project that is not packed would otherwise
+      # leave its tagged version unpublished.
       - name: Verify packages
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -99,7 +97,57 @@ jobs:
             echo "::error::The anchor package ${ANCHOR}.${VERSION}.nupkg is missing"
             failed=1
           fi
+          projects=()
+          while IFS= read -r manifest; do
+            dir=$(dirname "$manifest")
+            csprojs=("$dir"/*.csproj)
+            if [ "$dir" != . ] && [ "${#csprojs[@]}" -gt 0 ] && [ -n "$(jq -r '.version // empty' "$manifest")" ]; then
+              projects+=("$dir")
+            fi
+          done < <(find . -name package.json -not -path "*/node_modules/*" | sort)
+          if [ "${#packages[@]}" -ne "${#projects[@]}" ]; then
+            echo "::error::dotnet pack produced ${#packages[@]} packages for ${#projects[@]} versioned projects"
+            echo "Versioned projects:"
+            printf '  %s\n' "${projects[@]}"
+            echo "Packages:"
+            printf '  %s\n' "${packages[@]##*/}"
+            failed=1
+          fi
           exit "$failed"
+
+      - name: Upload package
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nupkgs
+          path: |
+            ./nupkgs/*.nupkg
+            ./nupkgs/*.snupkg
+          retention-days: 7
+          if-no-files-found: error
+
+  publish:
+    name: Publish to nuget.org
+    needs: pack
+    runs-on: ubuntu-latest
+    # The group is on the job, so a skipped release with another tag never enters it, and every
+    # release tag has its own group, so no release can replace the pending run of another version.
+    # Runs for the same tag wait for each other, and pushes use --skip-duplicate, so a second run for
+    # the same version pushes nothing.
+    concurrency:
+      group: nuget-publish-${{ inputs.tag || github.event.release.tag_name }}
+      cancel-in-progress: false
+    # nuget.org's trusted publishing policy for this package names this environment, and the OIDC token
+    # carries it, so only this job can obtain a push key.
+    environment: production
+    # Downloading an artifact of the same run needs no GITHUB_TOKEN permission.
+    permissions:
+      id-token: write
+    steps:
+      - name: Download package
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: nupkgs
+          path: ./nupkgs
 
       # The key nuget.org returns is valid for one hour, so it is requested only once the package is built.
       # NUGET_USER is the nuget.org profile name of the member of collana-solutions who owns the policy.
@@ -109,6 +157,7 @@ jobs:
         with:
           user: ${{ vars.NUGET_USER }}
 
+      # The runner image brings a .NET SDK, which is all dotnet nuget push needs, so this job installs none.
       # The .snupkg next to the .nupkg goes to the nuget.org symbol server with the same key.
       - name: Push to nuget.org
         env:
