@@ -39,7 +39,7 @@ jobs:
         run: corepack enable
 
       - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       # The Version Packages PR consumes the changesets it releases, so the check cannot pass on it. A branch name
       # alone is no proof (anyone can push a changeset-release/* branch), so the PR must also come from the bot.

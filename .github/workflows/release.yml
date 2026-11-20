@@ -1,5 +1,9 @@
 name: Release
 
+# Versions the packages and creates the release tags and GitHub Releases. Nothing goes to
+# npm: every package.json is private and exists only so changesets can track a version.
+# The GitHub Release of the anchor package starts nuget-publish.yml, which pushes to
+# nuget.org.
 on:
   push:
     branches:
@@ -49,30 +53,26 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
 
+      # The root dependencies are the changesets CLI only, and nothing here needs an install script.
       - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Determine publish config
-        id: publish-config
-        env:
-          REF: ${{ github.ref }}
-          REF_NAME: ${{ github.ref_name }}
-        run: |
-          if [[ "$REF" == refs/heads/release/* ]]; then
-            # Extract the major version from the branch name (e.g., release/v1.x → release-v1)
-            TAG=$(echo "$REF_NAME" | sed -n 's|release/v\([0-9]*\)\..*|release-v\1|p')
-            echo "tag=--tag $TAG" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=" >> "$GITHUB_OUTPUT"
-          fi
+      # scripts/sync-versions.mjs restores the solution so that the version PR also
+      # updates the lock files.
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
 
+      # The private packages are only tagged (privatePackages.tag in .changeset/config.json).
+      # No npm dist-tag is passed on release/** branches, because nothing goes to npm.
       - name: Create Release Pull Request or Publish
         id: changesets
         uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
           github-token: ${{ steps.app-token.outputs.token }}
           version-script: node scripts/sync-versions.mjs
-          publish-script: pnpm exec changeset publish ${{ steps.publish-config.outputs.tag }}
+          publish-script: pnpm exec changeset publish
           pr-title: "chore: version packages"
           commit-message: "chore: version packages"
 

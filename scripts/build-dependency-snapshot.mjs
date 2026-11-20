@@ -6,7 +6,7 @@
  *
  * Usage:
  *   dotnet list package --include-transitive --format json > deps.json
- *   node scripts/build-dependency-snapshot.js deps.json snapshot.json
+ *   node scripts/build-dependency-snapshot.mjs deps.json snapshot.json
  *
  * Required environment variables (set automatically on GitHub Actions):
  *   GITHUB_WORKSPACE  - repository root path
@@ -125,7 +125,7 @@ const [inputFile, outputFile] = process.argv.slice(2);
 
 if (!inputFile || !outputFile) {
   console.error(
-    "Usage: node build-dependency-snapshot.js <deps.json> <snapshot.json>",
+    "Usage: node build-dependency-snapshot.mjs <deps.json> <snapshot.json>",
   );
   process.exit(1);
 }

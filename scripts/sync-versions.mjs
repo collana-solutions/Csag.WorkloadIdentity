@@ -32,3 +32,9 @@ for (const { path: projDir, version } of workspacePackages) {
     console.log(`Updated ${csproj} to version ${version}`);
   }
 }
+
+// A packages.lock.json records the version of every project the project references.
+// Neither a locked nor a plain restore notices when that version is out of date, so
+// only a forced re-evaluation brings the lock files up to the new versions. Without
+// references between the packed projects nothing changes here.
+execSync("dotnet restore --force-evaluate", { stdio: "inherit" });
