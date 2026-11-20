@@ -5,7 +5,7 @@
     { "repo": "collana-solutions/Csag.WorkloadIdentity" }
   ],
   "commit": false,
-  "fixed": [["@neolution-ch/csag-workload-identity"]],
+  "fixed": [["@collana-solutions/csag-workload-identity"]],
   "linked": [],
   "access": "restricted",
   "baseBranch": "main",

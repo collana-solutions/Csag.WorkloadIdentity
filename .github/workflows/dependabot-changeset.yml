@@ -4,33 +4,42 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   generate-changeset:
     name: Generate Changeset
     runs-on: ubuntu-latest
-    if: github.actor == 'dependabot[bot]'
+    # The PR author, not github.actor: anyone who pushes to a Dependabot branch becomes the actor,
+    # while the author stays Dependabot.
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    # The push goes through the App token, so GITHUB_TOKEN only reads.
+    permissions:
+      contents: read
     steps:
+      # A GitHub App token (not GITHUB_TOKEN), so that the pushed changeset starts CI.
       - name: Generate App Token
         id: app-token
-        uses: actions/create-github-app-token@v3
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ secrets.CHANGESETS_BOT_CLIENT_ID }}
           private-key: ${{ secrets.CHANGESETS_BOT_PRIVATE_KEY }}
+          permission-contents: write
 
       - name: Checkout
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref }}
           token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
 
       - name: Check for existing changeset
         id: check-changeset
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
-          CHANGESET_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- '.changeset/*.md' | grep -v README.md || true)
+          CHANGESET_FILES=$(git diff --name-only "origin/$BASE_REF...HEAD" -- '.changeset/*.md' | grep -v README.md || true)
           if [ -n "$CHANGESET_FILES" ]; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
             echo "Changeset already exists, skipping generation"
@@ -41,13 +50,15 @@ jobs:
       - name: Detect package-affecting changes
         id: detect-changes
         if: steps.check-changeset.outputs.exists == 'false'
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
           # The shipped NuGet package is affected when its declared dependencies
           # (the csproj or the central Directory.Packages.props) or its resolved
           # dependency graph (packages.lock.json) change. Any Dependabot update
-          # that touches none of these — root npm dev-deps, GitHub Actions, other
-          # tooling — ships no code and gets an empty changeset instead.
-          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- 'Csag.WorkloadIdentity/*.csproj' 'Csag.WorkloadIdentity/packages.lock.json' 'Directory.Packages.props')
+          # that touches none of these (root npm dev-deps, GitHub Actions, other
+          # tooling) ships no code and gets an empty changeset instead.
+          CHANGED=$(git diff --name-only "origin/$BASE_REF...HEAD" -- 'Csag.WorkloadIdentity/*.csproj' 'Csag.WorkloadIdentity/packages.lock.json' 'Directory.Packages.props')
           if [ -n "$CHANGED" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
             echo "Package-affecting files changed:"
@@ -59,7 +70,7 @@ jobs:
 
       - name: Setup Node.js
         if: steps.check-changeset.outputs.exists == 'false'
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
 
@@ -71,11 +82,16 @@ jobs:
           PR_BODY: ${{ github.event.pull_request.body }}
           WORKSPACE_PACKAGES_CHANGED: ${{ steps.detect-changes.outputs.changed }}
 
+      # Pushes with the App token passed explicitly, so the token is never stored in the git config.
       - name: Commit and push changeset
         if: steps.check-changeset.outputs.exists == 'false'
+        env:
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .changeset/
           git commit -m "chore: add changeset for dependency updates"
-          git push
+          git push "https://x-access-token:${APP_TOKEN}@github.com/${REPOSITORY}.git" "HEAD:refs/heads/${HEAD_REF}"
