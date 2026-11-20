@@ -1,5 +1,11 @@
 # @collana-solutions/csag-workload-identity
 
+## 0.2.1
+
+### Patch Changes
+
+- [#35](https://github.com/collana-solutions/Csag.WorkloadIdentity/pull/35) [`32d60e2`](https://github.com/collana-solutions/Csag.WorkloadIdentity/commit/32d60e2a3d0e479b71dea9386fe4a9e4ecdf5793) Thanks [@neotrow](https://github.com/neotrow)! - The package icon on nuget.org is now the collana solutions logo.
+
 ## 0.2.0
 
 ### Minor Changes
