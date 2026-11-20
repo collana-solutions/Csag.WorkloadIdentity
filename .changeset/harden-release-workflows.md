@@ -1,4 +1,5 @@
 ---
+"@collana-solutions/csag-workload-identity": patch
 ---
 
-Harden the release workflows and rename the changeset package to `@collana-solutions/csag-workload-identity`. The NuGet package does not change.
+The package icon on nuget.org is now the collana solutions logo.
