@@ -82,10 +82,12 @@ jobs:
         run: dotnet restore --force-evaluate
 
       # -----------------------------------------------------------------------
-      # pnpm — delete + reinstall so the lock file is fully re-resolved to the
-      # newest versions allowed by the ranges in package.json. pnpm always writes
-      # a fresh lock file on install, so removing it first is the most reliable
-      # way to pick up new transitives.
+      # pnpm: delete the lock file and resolve again, so the lock file moves to
+      # the newest versions allowed by the ranges in package.json. pnpm keeps the
+      # versions an existing lock file records, so removing it first is what picks
+      # up new transitives. --lockfile-only writes the lock file without installing
+      # any package or running any script, so no dependency code runs before the
+      # App token is created.
       #
       # corepack activates the exact pnpm version pinned in package.json's
       # "packageManager" field, matching how CI installs dependencies.
@@ -105,7 +107,7 @@ jobs:
       - name: Refresh pnpm lock file
         run: |
           rm -f pnpm-lock.yaml
-          pnpm install --no-frozen-lockfile
+          pnpm install --lockfile-only
 
       - name: Report changes (dry run)
         if: inputs.dry-run == true

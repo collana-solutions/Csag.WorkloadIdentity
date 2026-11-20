@@ -14,17 +14,19 @@ on:
 
 permissions: {}
 
-# Runs are serialized and pushes use --skip-duplicate, so a second run for the same version pushes nothing.
-concurrency:
-  group: nuget-publish
-  cancel-in-progress: false
-
 jobs:
   publish:
     name: Publish to nuget.org
     # Only a release of the package itself publishes, not a GitHub Release with another tag.
     if: startsWith(inputs.tag || github.event.release.tag_name, '@collana-solutions/csag-workload-identity@')
     runs-on: ubuntu-latest
+    # The group is on the job, so a skipped release with another tag never enters it, and every
+    # release tag has its own group, so no release can replace the pending run of another version.
+    # Runs for the same tag wait for each other, and pushes use --skip-duplicate, so a second run for
+    # the same version pushes nothing.
+    concurrency:
+      group: nuget-publish-${{ inputs.tag || github.event.release.tag_name }}
+      cancel-in-progress: false
     # nuget.org's trusted publishing policy for this package names this environment, and the OIDC token
     # carries it, so only this job can obtain a push key.
     environment: production
@@ -53,11 +55,6 @@ jobs:
           # Tag format: @collana-solutions/csag-workload-identity@0.3.0
           echo "version=${TAG##*@}" >> "$GITHUB_OUTPUT"
 
-      - name: Remove changesets version-tracking stubs
-        run: |
-          # Remove package.json files so they don't leak into the NuGet package
-          find . -name package.json -not -path "./node_modules/*" -delete
-
       - name: Restore
         run: dotnet restore --locked-mode
 
@@ -71,13 +68,38 @@ jobs:
         run: dotnet pack Csag.WorkloadIdentity --configuration Release --no-build -o ./nupkgs
 
       # The version comes from the .csproj, which scripts/sync-versions.mjs sets in the version PR, so this
-      # fails when the tag and the project disagree.
-      - name: Verify packed version matches the release tag
+      # fails when the tag and the project disagree. The package has to carry the release version, because
+      # --skip-duplicate would skip a package that kept an older one and leave the new version unpublished.
+      # The package.json files exist for changesets only, so the package may not contain one.
+      - name: Verify packages
         env:
           VERSION: ${{ steps.version.outputs.version }}
+          ANCHOR: Csag.WorkloadIdentity
         run: |
-          ls ./nupkgs
-          test -f "./nupkgs/Csag.WorkloadIdentity.${VERSION}.nupkg"
+          shopt -s nullglob
+          packages=(./nupkgs/*.nupkg)
+          if [ "${#packages[@]}" -eq 0 ]; then
+            echo "::error::dotnet pack produced no .nupkg in ./nupkgs"
+            exit 1
+          fi
+          failed=0
+          for package in "${packages[@]}"; do
+            name=$(basename "$package")
+            echo "$name"
+            if [[ "$name" != *".${VERSION}.nupkg" ]]; then
+              echo "::error::$name does not carry the release version ${VERSION}"
+              failed=1
+            fi
+            if unzip -l "$package" | grep -qE '[ /]package\.json$'; then
+              echo "::error::$name contains a package.json"
+              failed=1
+            fi
+          done
+          if [ ! -f "./nupkgs/${ANCHOR}.${VERSION}.nupkg" ]; then
+            echo "::error::The anchor package ${ANCHOR}.${VERSION}.nupkg is missing"
+            failed=1
+          fi
+          exit "$failed"
 
       # The key nuget.org returns is valid for one hour, so it is requested only once the package is built.
       # NUGET_USER is the nuget.org profile name of the member of collana-solutions who owns the policy.

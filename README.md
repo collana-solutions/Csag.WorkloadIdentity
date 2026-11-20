@@ -27,7 +27,7 @@ A .NET library that gives an application passwordless access tokens for Azure SQ
 
 ## Preview packages
 
-Each pull request to `main` or to a `release/**` branch publishes the package to a public preview feed on feedz.io. A draft PR, a PR from a fork and a PR from Dependabot publish no preview. The version is one patch above the current release, for example `0.1.2-pr.42.183` (PR 42, workflow run 183). The **"chore: version packages"** PR publishes a release candidate of the upcoming version, for example `0.2.0-pr.73.190`. Thus you can test all the changes of the next release before the release. A comment on the PR gives the version of its latest push. The feed removes previews after 30 days. Releases go to nuget.org only.
+Each pull request to `main` or to a `release/**` branch publishes the package to a public preview feed on feedz.io. A draft PR, a PR from a fork and a PR from Dependabot publish no preview. The version is one patch above the current release, for example `0.1.2-pr.42.183` (PR 42, workflow run 183). The **"chore: version packages"** PR publishes a release candidate of the upcoming version, for example `0.2.0-pr.73.190`. Thus you can test all the changes of the next release before the release. In prerelease mode the version in `package.json` is a prerelease such as `1.0.0-rc.0`. Then the preview extends it, for example `1.0.0-rc.0.pr.42.183`. That version sorts after the prerelease and before the next one. A comment on the PR gives the version of its latest push. The feed removes previews after 30 days. Releases go to nuget.org only.
 
 To use a preview in an application, add the feed to the `nuget.config` of the application. The feed needs no credentials:
 
