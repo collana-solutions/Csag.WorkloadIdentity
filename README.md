@@ -60,7 +60,7 @@ To test a preview:
 
 This repository follows the [collana-solutions release playbook](https://github.com/collana-solutions/release-playbook) (Changesets, NuGet variant):
 
-1. Every PR that changes the library needs a changeset: run `pnpm changeset`, choose the bump type and describe the change. CI blocks PRs without one (`pnpm changeset --empty` for changes that do not affect the package).
+1. Every PR that changes the library needs a changeset: run `pnpm changeset`, choose the bump type and describe the change. CI blocks a PR that changes the project folder, `Directory.Build.props`, `Directory.Packages.props` or `global.json` without one (`pnpm changeset --empty` when such a change does not affect the package). A PR that only touches CI or repository documentation needs none.
 2. On merge to `main`, the Release workflow maintains a **"chore: version packages"** PR that accumulates pending changesets; `scripts/sync-versions.mjs` keeps the `.csproj` version in step.
 3. Merging that PR creates the git tag and GitHub Release; the **NuGet Publish** workflow then packs and pushes the package to nuget.org through [trusted publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing), so no API key is stored in the repository. To publish an existing release again, for example after a failed push, run **NuGet Publish** from the Actions tab with the release tag.
 
