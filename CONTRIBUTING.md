@@ -47,8 +47,8 @@ Releases follow the [collana-solutions release playbook](https://github.com/coll
 
 - Every PR that changes the library needs a changeset file in `.changeset/`. Run `pnpm changeset`, pick the bump type and describe the change **for consumers of the package**; the text becomes the CHANGELOG entry.
 - The package is on a `0.x` version, so the bump convention is: **minor** for a breaking or behaviour-changing change, **patch** for a fix or for documentation that ships inside the package (the package README does).
-- A change that does not touch the package, such as CI, repository documentation or the Demo, still needs a changeset so that the check passes: run `pnpm changeset --empty`, which creates a file with an empty front matter.
-- CI's **Changeset Check** fails a PR without a changeset. Do not edit `CHANGELOG.md` or the version in the `.csproj` by hand; the "chore: version packages" PR does that.
+- A change to the project folder, `Directory.Build.props`, `Directory.Packages.props` or `global.json` that ships nothing still needs a changeset so that the check passes: run `pnpm changeset --empty`, which creates a file with an empty front matter. A PR that only touches CI, repository documentation or the Demo needs none.
+- CI's **Changeset Check** fails such a PR without a changeset. Do not edit `CHANGELOG.md` or the version in the `.csproj` by hand. The "chore: version packages" PR does that.
 
 A changeset file looks like this:
 
