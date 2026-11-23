@@ -8,6 +8,16 @@
         "resolved": "10.1.0",
         "contentHash": "SlYCIHnBYxINSUpR75SiM5JEmnx11pqT+Ac/C/fUqTTA0dLPl9eYzmFXKKuxmQhL3ZdTQl4PBD3YdAxAauaKLQ=="
       },
+      "Csag.CodeAnalysis.TestsRuleset": {
+        "type": "Direct",
+        "requested": "[3.3.0, )",
+        "resolved": "3.3.0",
+        "contentHash": "lSQ9byuOxV3DUDtcyEkZnt9URnk/R177MDUGoY//DR8IfbyE1WAXZ9Schq/Mdy79hWTC68uTiSjWP0lTri7BQA==",
+        "dependencies": {
+          "SonarAnalyzer.CSharp": "9.32.0.97167",
+          "StyleCop.Analyzers.Unstable": "1.2.0.556"
+        }
+      },
       "GitHubActionsTestLogger": {
         "type": "Direct",
         "requested": "[3.0.5, )",
@@ -88,16 +98,6 @@
         "dependencies": {
           "Microsoft.CodeCoverage": "18.11.0",
           "Microsoft.TestPlatform.TestHost": "18.11.0"
-        }
-      },
-      "Neolution.CodeAnalysis.TestsRuleset": {
-        "type": "Direct",
-        "requested": "[3.3.0-beta.2, )",
-        "resolved": "3.3.0-beta.2",
-        "contentHash": "GQXIkpfRlgKFZw+vsQM2wTqRVq10Sq/zcEniQgFGTNZqyBCzogBLzi8FabptRO38yblVPN7YS35IqQ3bJtfp1Q==",
-        "dependencies": {
-          "SonarAnalyzer.CSharp": "9.32.0.97167",
-          "StyleCop.Analyzers.Unstable": "1.2.0.556"
         }
       },
       "NSubstitute": {
@@ -676,6 +676,16 @@
         "resolved": "10.1.0",
         "contentHash": "SlYCIHnBYxINSUpR75SiM5JEmnx11pqT+Ac/C/fUqTTA0dLPl9eYzmFXKKuxmQhL3ZdTQl4PBD3YdAxAauaKLQ=="
       },
+      "Csag.CodeAnalysis.TestsRuleset": {
+        "type": "Direct",
+        "requested": "[3.3.0, )",
+        "resolved": "3.3.0",
+        "contentHash": "lSQ9byuOxV3DUDtcyEkZnt9URnk/R177MDUGoY//DR8IfbyE1WAXZ9Schq/Mdy79hWTC68uTiSjWP0lTri7BQA==",
+        "dependencies": {
+          "SonarAnalyzer.CSharp": "9.32.0.97167",
+          "StyleCop.Analyzers.Unstable": "1.2.0.556"
+        }
+      },
       "GitHubActionsTestLogger": {
         "type": "Direct",
         "requested": "[3.0.5, )",
@@ -756,16 +766,6 @@
         "dependencies": {
           "Microsoft.CodeCoverage": "18.11.0",
           "Microsoft.TestPlatform.TestHost": "18.11.0"
-        }
-      },
-      "Neolution.CodeAnalysis.TestsRuleset": {
-        "type": "Direct",
-        "requested": "[3.3.0-beta.2, )",
-        "resolved": "3.3.0-beta.2",
-        "contentHash": "GQXIkpfRlgKFZw+vsQM2wTqRVq10Sq/zcEniQgFGTNZqyBCzogBLzi8FabptRO38yblVPN7YS35IqQ3bJtfp1Q==",
-        "dependencies": {
-          "SonarAnalyzer.CSharp": "9.32.0.97167",
-          "StyleCop.Analyzers.Unstable": "1.2.0.556"
         }
       },
       "NSubstitute": {

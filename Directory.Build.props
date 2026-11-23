@@ -29,7 +29,7 @@
 
   <!-- Analyzers for shipped code. Test projects use the TestsRuleset; the Demo is exempt (IsPackable=false). -->
   <ItemGroup Condition="'$(IsTestProject)' != 'true' and '$(IsPackable)' != 'false'">
-    <PackageReference Include="Neolution.CodeAnalysis">
+    <PackageReference Include="Csag.CodeAnalysis">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

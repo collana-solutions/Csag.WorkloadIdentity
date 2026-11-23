@@ -7,8 +7,8 @@
 
   <ItemGroup>
     <!-- Static code analysis -->
-    <PackageVersion Include="Neolution.CodeAnalysis" Version="3.3.0-beta.2" />
-    <PackageVersion Include="Neolution.CodeAnalysis.TestsRuleset" Version="3.3.0-beta.2" />
+    <PackageVersion Include="Csag.CodeAnalysis" Version="3.3.0" />
+    <PackageVersion Include="Csag.CodeAnalysis.TestsRuleset" Version="3.3.0" />
 
     <!-- Library -->
     <PackageVersion Include="Azure.Core" Version="1.64.0" />

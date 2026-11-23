@@ -18,7 +18,7 @@ dotnet test -c Release -f net10.0   # a single target framework, for a quicker l
 dotnet pack Csag.WorkloadIdentity -c Release -o ./nupkgs
 ```
 
-The library targets `net8.0` and `net10.0`, and CI runs the tests on both; a change is not done until both are green. Build in `Release` before you push: `TreatWarningsAsErrors` is on and the StyleCop rules from `Neolution.CodeAnalysis` are enforced there, so a build that is clean in `Debug` can still fail. Fix every warning rather than suppressing it.
+The library targets `net8.0` and `net10.0`, and CI runs the tests on both; a change is not done until both are green. Build in `Release` before you push: `TreatWarningsAsErrors` is on and the StyleCop rules from `Csag.CodeAnalysis` are enforced there, so a build that is clean in `Debug` can still fail. Fix every warning rather than suppressing it.
 
 ## Code conventions
 
